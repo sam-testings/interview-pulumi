@@ -1,7 +1,6 @@
 import pulumi
 import pulumi_aws as aws
 import pulumi_awsx as awsx
-from pulumi_awsx.awsx import DefaultRoleWithPolicyArgs, ExistingLogGroupArgs, DefaultLogGroupArgs
 
 config = pulumi.Config()
 
@@ -67,12 +66,25 @@ ecr_repository = awsx.ecr.Repository(
 )
 
 '''
-created ecr image manually as kept getting error 
+created ecr image manually as kept getting error when using awsx.ecr.Image
 docker build -t 148149772933.dkr.ecr.us-east-1.amazonaws.com/ecr-repository-08fa057 .
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 148149772933.dkr.ecr.us-east-1.amazonaws.com
 docker push 148149772933.dkr.ecr.us-east-1.amazonaws.com/ecr-repository-08fa057
-look into using local.command to automate this?
+
+Could use local.command to do these commands, however unsure how this resolves with service creation. 
 '''
+
+'''
+image = awsx.ecr.Image(
+    "image",
+    awsx.ecr.ImageArgs(
+        repository_url=repository.url, 
+        context="/app", 
+        platform="linux/amd64"
+    ),
+)
+'''
+
 image_uri = "148149772933.dkr.ecr.us-east-1.amazonaws.com/ecr-repository-08fa057:latest"
 
 cluster = aws.ecs.Cluster("cluster")
@@ -109,7 +121,7 @@ service = awsx.ecs.FargateService(
         task_role=awsx.awsx.DefaultRoleWithPolicyArgs(
             role_arn=ecs_assume.arn,
         ),
-        log_group=DefaultLogGroupArgs(
+        log_group=awsx.awsx.DefaultLogGroupArgs(
             existing=ExistingLogGroupArgs(
                 arn=log_group.arn
             )
